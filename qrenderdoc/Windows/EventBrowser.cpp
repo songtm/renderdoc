@@ -119,6 +119,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   // set up default section layout. This will be overridden in restoreState()
   ui->events->header()->resizeSection(COL_EID, 80);
   ui->events->header()->resizeSection(COL_DRAW, 60);
+  ui->events->header()->resizeSection(COL_RT, 200);
   ui->events->header()->resizeSection(COL_NAME, 200);
   ui->events->header()->resizeSection(COL_DURATION, 80);
 
@@ -568,7 +569,7 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
         auto name = m_Ctx.GetResourceName(RTs[rt].resourceId);
 
 		auto tex = *m_Ctx.GetTexture(RTs[rt].resourceId);
-        if(!name.contains(std::to_string(tex.width)) && name.contains(std::to_string(tex.height)))
+        if(!name.contains(std::to_string(tex.width)) || !name.contains(std::to_string(tex.height)))
 			name = tr("%1 (%2x%3)").arg(name).arg(tex.width).arg(tex.height);
 
         str = tr("%1 %2").arg(str).arg(name);
