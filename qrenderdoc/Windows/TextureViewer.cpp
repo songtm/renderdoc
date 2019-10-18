@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "TextureViewer.h"
 #include <float.h>
 #include <math.h>
 #include <QClipboard>
@@ -42,6 +41,7 @@
 #include "Dialogs/TextureSaveDialog.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
+#include "TextureViewer.h"
 #include "ui_TextureViewer.h"
 
 float area(const QSizeF &s)
@@ -375,7 +375,14 @@ public:
           texs.push_back(t);
       }
     }
-
+    //if(type == RenderTargets)
+    {
+      std::sort(texs.begin(), texs.end(),
+          [](const TextureDescription &a, const TextureDescription &b) -> bool 
+		  {
+			return a.width*a.height> b.width*b.height;
+		  });
+    }
     emit endResetModel();
   }
 
@@ -405,7 +412,13 @@ public:
       if(role == Qt::DisplayRole)
       {
         if(index.row() >= 0 && index.row() < texs.count())
-          return m_Ctx.GetResourceName(texs[index.row()].resourceId);
+        {
+          auto tex = texs[index.row()];
+          auto name = m_Ctx.GetResourceName(tex.resourceId);
+          if(name.contains(std::to_string(tex.width)) && name.contains(std::to_string(tex.height)))
+            return name;
+          return tr("%1 [%2x%3]").arg(m_Ctx.GetResourceName(tex.resourceId)).arg(tex.width).arg(tex.height);
+        }
       }
 
       if(role == Qt::UserRole)
@@ -802,8 +815,10 @@ void TextureViewer::RT_UpdateVisualRange(IReplayController *)
     fmt.compCount = 4;
 
   bool channels[] = {
-      m_TexDisplay.red ? true : false, m_TexDisplay.green && fmt.compCount > 1,
-      m_TexDisplay.blue && fmt.compCount > 2, m_TexDisplay.alpha && fmt.compCount > 3,
+      m_TexDisplay.red ? true : false,
+      m_TexDisplay.green && fmt.compCount > 1,
+      m_TexDisplay.blue && fmt.compCount > 2,
+      m_TexDisplay.alpha && fmt.compCount > 3,
   };
 
   PixelValue min, max;

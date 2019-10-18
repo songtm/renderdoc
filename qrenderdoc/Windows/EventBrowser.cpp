@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "TextureViewer.h"
 #include "EventBrowser.h"
 #include <QAbstractSpinBox>
 #include <QComboBox>
@@ -59,6 +60,7 @@ enum
 {
   COL_NAME,
   COL_EID,
+  COL_RT,
   COL_DRAW,
   COL_DURATION,
   COL_COUNT,
@@ -91,7 +93,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->events->setFont(Formatter::PreferredFont());
 
   ui->events->setColumns(
-      {tr("Name"), lit("EID"), lit("Draw #"), lit("Duration - replaced in UpdateDurationColumn")});
+      {tr("Name"), lit("EID"), lit("RT"), lit("Draw #"), lit("Duration - replaced in UpdateDurationColumn")});
 
   ui->events->setHeader(new RDHeaderView(Qt::Horizontal, this));
   ui->events->header()->setStretchLastSection(true);
@@ -239,10 +241,10 @@ EventBrowser::~EventBrowser()
 void EventBrowser::OnCaptureLoaded()
 {
   RDTreeWidgetItem *frame = new RDTreeWidgetItem(
-      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString()});
+      {QFormatStr("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), QString(), QString(), QString(), QString()});
 
   RDTreeWidgetItem *framestart =
-      new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit("0"), QString()});
+      new RDTreeWidgetItem({tr("Frame Start"), lit("0"), lit(""), lit("0"), QString()});
   framestart->setTag(QVariant::fromValue(EventItemTag(0, 0)));
 
   frame->addChild(framestart);
@@ -356,9 +358,9 @@ QPair<uint32_t, uint32_t> EventBrowser::AddDrawcalls(RDTreeWidgetItem *parent,
     QVariant name = QString(d.name);
 
     RichResourceTextInitialise(name);
-
+	
     RDTreeWidgetItem *child = new RDTreeWidgetItem(
-        {name, QString::number(d.eventId), QString::number(d.drawcallId), lit("---")});
+        {name, QString::number(d.eventId),tr(""),  QString::number(d.drawcallId), lit("---")});
 
     QPair<uint32_t, uint32_t> last = AddDrawcalls(child, d.children);
     lastEID = last.first;
@@ -546,6 +548,35 @@ void EventBrowser::on_events_currentItemChanged(RDTreeWidgetItem *current, RDTre
     ui->stepPrev->setEnabled(true);
 
   highlightBookmarks();
+
+
+  //rt update
+  if(true && draw != NULL && (draw->flags & DrawFlags::Drawcall))
+  {
+    rdcarray<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
+    BoundResource Depth = Following::GetDepthTarget(m_Ctx);
+    auto str = tr("");
+    if(Depth.resourceId != ResourceId())
+    {
+      auto name = m_Ctx.GetResourceName(Depth.resourceId);
+      str = tr(" [%1]").arg(name);
+    }
+    for(int rt = 0; rt < RTs.count(); rt++)
+    {
+      if(RTs[rt].resourceId != ResourceId())
+      {
+        auto name = m_Ctx.GetResourceName(RTs[rt].resourceId);
+
+		auto tex = *m_Ctx.GetTexture(RTs[rt].resourceId);
+        if(!name.contains(std::to_string(tex.width)) && name.contains(std::to_string(tex.height)))
+			name = tr("%1 (%2x%3)").arg(name).arg(tex.width).arg(tex.height);
+
+        str = tr("%1 %2").arg(str).arg(name);
+      }
+    }
+    current->setText(COL_RT, QFormatStr("%1").arg(str));
+  }
+  //end rt
 }
 
 void EventBrowser::on_HideFindJump()
