@@ -686,11 +686,11 @@ void TimelineBar::paintEvent(QPaintEvent *e)
 
     const QColor colors[UsageCount] = {
         // read
-        QColor::fromRgb(230, 159, 0),
+        QColor::fromRgb(255, 0, 0),
         // write
-        QColor::fromRgb(86, 180, 233),
+        QColor::fromRgb(0, 0, 255),
         // read/write
-        QColor::fromRgb(240, 228, 66),
+        QColor::fromRgb(255, 233, 143),
         // clear
         QColor::fromRgb(0, 0, 0),
         // barrier
